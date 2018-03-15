@@ -12,14 +12,18 @@ import java.util.Scanner;
 
 public class ChatClientApp {
 	private static final String SERVER_IP = "192.168.1.12";
+//	private static final String SERVER_IP = "192.168.25.21"; // 집
+//	private static final String SERVER_IP = "192.168.0.24"; // 달봄
+//	private static final String SERVER_IP = "192.168.0.226"; // 히어로
+	
 	private static final int SERVER_PORT = 6000;
 	
 	public static void main(String[] args) {
 		String name = "";
 		Scanner scanner = new Scanner(System.in);
 
+		Socket socket = new Socket();
 		try {
-			Socket socket = new Socket();
 			socket.connect(new InetSocketAddress(SERVER_IP, SERVER_PORT));
 			
 			BufferedReader br = new BufferedReader(
@@ -41,14 +45,11 @@ public class ChatClientApp {
 				
 				System.out.println("대화명은 한글자 이상 입력해야 합니다.\n");
 			}
-			pw.print("join:"+name);
+			
 			scanner.close();
 			
-			new ChatWindow(name).show();
+			new ChatWindow(name, br, pw).show();
 			
-			/*while (true) {
-				br.readLine();
-			}*/
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

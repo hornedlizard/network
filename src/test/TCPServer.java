@@ -19,9 +19,12 @@ public class TCPServer {
 			// 1. 서버소켓 생성
 			serverSocket = new ServerSocket();
 			
+			// Time-wait 상태에서 서버 재실행이 가능하게 끔 함
+			serverSocket.setReuseAddress(true);
+			
 			// 2. 바인딩(binding) 소켓을 호스트의 포트와 연결
 			String localhostAddress = InetAddress.getLocalHost().getHostAddress();
-			serverSocket.bind(new InetSocketAddress(localhostAddress, SERVER_PORT));
+			serverSocket.bin.bind(new InetSocketAddress(localhostAddress, SERVER_PORT));
 			System.out.println("[server] binding "+localhostAddress+" : "+SERVER_PORT);
 			
 			// 3. 연결 요청 기다림(accept) blocking 되어서 대기 중

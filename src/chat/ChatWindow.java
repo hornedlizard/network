@@ -30,14 +30,22 @@ public class ChatWindow {
 	private Button buttonSend;
 	private TextField textField;
 	private TextArea textArea;
+	
+	private String name;
+	private BufferedReader br;
+	private PrintWriter pw;
 
-	public ChatWindow(String name) {
+	public ChatWindow(String name, BufferedReader br, PrintWriter pw) {
 		frame = new Frame(name);
 		pannel = new Panel();
 		buttonSend = new Button("Send");
 		textField = new TextField();
 		textArea = new TextArea(30, 80);
-		new ChatClientReceiveThread(name).start();
+		
+		this.name = name;
+		this.br = br;
+		this.pw = pw;
+		new ChatClientReceiveThread().start();
 	}
 
 	public void show() {
@@ -47,7 +55,7 @@ public class ChatWindow {
 		buttonSend.addActionListener( new ActionListener() {
 			@Override
 			public void actionPerformed( ActionEvent actionEvent ) {
-				sendMessage();
+				sendMessage(name, pw);
 			}
 		});
 		
@@ -58,7 +66,7 @@ public class ChatWindow {
 			public void keyReleased(KeyEvent e) {
 				char keyCode = e.getKeyChar();
 				if (keyCode == KeyEvent.VK_ENTER) {
-					sendMessage();
+					sendMessage(name, pw);
 				}
 			}
 		});
@@ -83,26 +91,37 @@ public class ChatWindow {
 		frame.pack();
 	}
 	
-	private void sendMessage() {
+	private void sendMessage(String name, PrintWriter pw) {
 		String message = textField.getText();
+		MessagePacket mPacket = new MessagePacket(name);
+		if ("quit".equals(message)) {
+			mPacket.setProtocol(2);
+			pw.print(mPacket);
+//			pw.println("quit:"+name);
+			return;
+		}
+		pw.println("message:"+message);
+		System.out.println("메시지 보냄");
 		
-		textArea.append( "둘리:" + message );
-		textArea.append("\n");
-
 		textField.setText("");
 		textField.requestFocus();		
 	}
 	
 	public class ChatClientReceiveThread extends Thread {
-		private static final String SERVER_IP = "192.168.1.12";
-		private static final int SERVER_PORT = 6000;
-		private String name;
-		public ChatClientReceiveThread(String name) {
-			this.name = name;
-		}
+//		private static final String SERVER_IP = "192.168.1.12";
+//		private static final int SERVER_PORT = 6000;
+//		private String name;
+//		private BufferedReader br;
+//		private PrintWriter pw;
+//		
+//		public ChatClientReceiveThread(String name, BufferedReader br, PrintWriter pw) {
+//			this.name = name;
+//			this.br = br;
+//			this.pw = pw;
+//		}
 			@Override
 		public void run() {
-			Scanner scanner = new Scanner(System.in);
+//			Scanner scanner = new Scanner(System.in);
 			Socket socket = new Socket();
 			try {
 //				socket.connect(new InetSocketAddress(SERVER_IP, SERVER_PORT));
@@ -113,22 +132,29 @@ public class ChatWindow {
 //				PrintWriter pw = new PrintWriter(
 //						new OutputStreamWriter(
 //								socket.getOutputStream(), StandardCharsets.UTF_8), true);
+				pw.println("join:"+name);
 				System.out.println("클라이언트 접속");
-				//pw.println("join:"+name);
-				System.out.println("join");
-				String msg = br.readLine();
-				System.out.println(msg);
-				textArea.append( msg );
-				//pw.println(name);
+				while (true) {
+					
+					String msg = br.readLine();
+					
+					if( msg == null ) {
+						System.out.println( "[client] disconnected by server" );
+						break;
+					}
+					
+					System.out.println("받은 메시지:"+msg);
+					textArea.append( msg );
+					textArea.append("\n");
+				}
 				
-				/*while (true) {
-					br.readLine();
-				}*/
-				scanner.close();
 			} catch (UnknownHostException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
+			} finally {
+				System.out.println("클라쪽");
+				ClosingStream.closingStream(socket);
 			}
 			
 		}

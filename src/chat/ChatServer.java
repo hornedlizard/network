@@ -26,9 +26,11 @@ public class ChatServer {
 				new ChatServerProcessThread(socket, writers).start();
 			}
 		} catch (SocketException e) {
-			
+			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			ClosingStream.closingStream(serverSocket);
 		}
 		
 	}

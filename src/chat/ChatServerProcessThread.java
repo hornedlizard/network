@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -15,7 +16,7 @@ import java.util.List;
 public class ChatServerProcessThread extends Thread{
 	private Socket socket;
 	private static List<Writer> writers = null;
-	private String name;
+	private String clientName;
 
 	public ChatServerProcessThread(Socket socket, List<Writer> writers) {
 		this.socket = socket;
@@ -33,50 +34,71 @@ public class ChatServerProcessThread extends Thread{
 							socket.getOutputStream(), "utf-8"), true);
 			BufferedReader br = new BufferedReader(
 					new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-			//String request = null;
-			//while (true) {
-				System.out.println("서버소켓연결");
-				String line = br.readLine();
-//				if (line == null||"".equals(line)) {
-//					break;
-//				}
-//				if (request == null) {
-//					request = line;
-//					break;
-//				}
+			String request = null;
+			checkClientConnection();
+			System.out.println("서버소켓연결");
+			while (true) {
+				request = br.readLine();
+				if (request == null) {
+					System.out.println("클라 연결종료");
+					doQuit(clientName, pw);
+					break;
+				}
 				
-			//}
-			
-			System.out.println(line);
-			
-			String[] tokens = line.split(":");
-			if (tokens[0].equals("join")) {
-//				doJoin(os, tokens[1], writer);
-				doJoin(tokens[1], pw);
-			} else if (tokens[0].equals("message")) {
-				broadcast(tokens[1]);
+				System.out.println("메시지 받음"+request);
+				
+				String[] tokens = request.split(":");
+				if (tokens[0].equals("join")) {
+					doJoin(tokens[1], pw);
+				} else if (tokens[0].equals("message")) {
+					System.out.println(tokens[1]);
+					broadcast(clientName+": "+tokens[1]);
+				} else if (tokens[0].equals("quit")) {
+					doQuit(clientName, pw);
+					break;
+				}
 			}
+			
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			System.out.println("서버쪽");
+			ClosingStream.closingStream(socket);
 		}
 		
 	}
-	private void doJoin(String name, Writer writer) throws IOException {
+	private void doJoin(String clientName, Writer writer) throws IOException {
 		System.out.println("join");
-//		os.write((tokens+"님이 입장하셨습니다.").getBytes(StandardCharsets.UTF_8));
-//		os.write( "\r\n".getBytes() );
-		this.name = name;
-		broadcast(name+"님이 입장하셨습니다.");
+		this.clientName = clientName;
+		broadcast(clientName+"님이 입장하셨습니다.");
 		writers.add(writer);
 	}
 	
 	private void broadcast(String data) {
 		synchronized (writers) {
 			for (Writer writer : writers) {
+				System.out.println(writer+"메시지 보내기"+data);
 				PrintWriter pw = (PrintWriter) writer;
 				pw.println(data);
 			}
 		}
 	}
 	
+	private void doQuit(String clientName, Writer writer) {
+		synchronized (writers) {
+			writers.remove(writer);
+			broadcast(clientName+"님이 퇴장하였습니다.");
+		}
+	}
+	
+	private void checkClientConnection() {
+		InetSocketAddress clientAddress = (InetSocketAddress) socket.getRemoteSocketAddress();
+		int remoteHostPort = clientAddress.getPort();
+		String remoteHostAddress = clientAddress.getAddress().getHostAddress();
+		consoleLog("connected from " + remoteHostAddress + " : " + remoteHostPort);
+	}
+	
+	private void consoleLog(String log) {
+		System.out.println("[server: " + getId() + "] " + log);
+	}
 }
